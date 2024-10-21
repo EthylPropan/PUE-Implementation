@@ -28,9 +28,6 @@ struct AE_key
 	uint8_t key[KEY_LEN];		 // Encryption key
 };
 
-#define RHO (KEY_LEN + W * SEED_LEN)
-#define NU (IV_LEN + TAG_LEN)
-
 struct delta_token_data
 {
 	uint8_t seeds[2 * SEED_LEN];

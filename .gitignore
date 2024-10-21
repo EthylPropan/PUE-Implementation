@@ -50,3 +50,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+test_PUE_State
+test_PUE_One
+test_PUE_List

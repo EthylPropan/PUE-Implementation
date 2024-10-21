@@ -84,6 +84,8 @@ struct ServerState
 	AECtxt SeedsCtxt;
 };
 
+uint8_t* PUE_GetName();
+
 void PUE_SState_KeyGen(AE_key *ae_key);
 int PUE_SState_Encrypt(AE_key *ae_key, uint8_t *message, UECtxt *ciphertext, int length);
 void PUE_SState_Decrypt(AE_key *ae_key, UECtxt *ciphertext, ServerState *state, uint8_t *message);

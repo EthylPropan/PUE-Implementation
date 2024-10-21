@@ -8,7 +8,7 @@
 
 #include "aes_ctr.h"
 #include "aes_gcm.h"
-#include "PUE_State.h"
+#include "PUE_One.h"
 
 //  Windows
 #ifdef _WIN32
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     if (argc > 4)
         runs = atoi(argv[4]);
 
-    printf("Buffer length is ?\n"); 
+    printf("Buffer length is ?\n"); // %i * %d\n", numCiphertext, ctxtSize);
     int totalPlaintextSize = size * numCiphertext;
     uint8_t *message = (int8_t *)malloc(totalPlaintextSize);
     RAND_bytes(message, totalPlaintextSize);
@@ -67,11 +67,9 @@ int main(int argc, char **argv)
     AE_key ae_key, ae_key_new;
     UECtxt ueCiphertext;
     ueCiphertext.c.encryptedBits = (int8_t *)malloc(totalPlaintextSize);
-    ueCiphertext.cHat.cHatMain.encryptedBits = (int8_t *)malloc(sizeof(HeaderData));
-    ServerState serverState;
-    deltaTildeData deltaTilde;
+    ueCiphertext.cHat.encryptedBits = (int8_t *)malloc(sizeof(HeaderData));
     delta_token_data delta;
-    delta.cHatPrime.cHatMain.encryptedBits = (int8_t *)malloc(sizeof(HeaderData));
+    delta.cHatPrime.encryptedBits = (int8_t *)malloc(sizeof(HeaderData));
     // ######### END APPL SPECIFIC INIT
 
     uint64_t gen_cycles = 0;
@@ -88,51 +86,41 @@ int main(int argc, char **argv)
     {
         // AE_KeyGen
         begin = rdtsc();
-        PUE_SState_KeyGen(&ae_key);
+        PUE_One_KeyGen(&ae_key);
         end = rdtsc();
         gen_cycles += (end - begin);
 
-        // printf("Gen done\n");
-
         // AE_Encrypt
         begin = rdtsc();
-        PUE_SState_Encrypt(&ae_key, message, &ueCiphertext, size);
+        PUE_One_Encrypt(&ae_key, message, &ueCiphertext, size);
         end = rdtsc();
         encrypt_cycles += (end - begin);
-
-        // printf("Enc done\n");
 
         for (int re_encrypts = 0; re_encrypts < total_re_encrypts; re_encrypts++)
         {
             // ReKeyGen
             begin = rdtsc();
-            PUE_SState_ReKeyGen(&ae_key, &serverState, &deltaTilde, &ae_key_new);
-            PUE_SState_TG(&ae_key, &ae_key_new, &ueCiphertext.cHat, &deltaTilde, &delta);
+            PUE_One_ReKeyGen(&ae_key, &ae_key_new);
+            PUE_One_TG(&ae_key, &ae_key_new, &ueCiphertext.cHat,  &delta);
             end = rdtsc();
             regen_cycles += (end - begin);
            
-            // printf("ReGen %i done\n", re_encrypts);
-
             // ReEncrypt
             begin = rdtsc();
-            PUE_SState_Upd(&deltaTilde, &delta, &ueCiphertext);
+            PUE_One_Upd(&delta, &ueCiphertext);
             end = rdtsc();
             re_encrypt_cycles += (end - begin);
-            // printf("ReEnc %i done\n", re_encrypts);
 
             memcpy(&ae_key, &ae_key_new, sizeof(AE_key));
 
             // AE_Decrypt
             begin = rdtsc();
-            PUE_SState_Decrypt(&ae_key, &ueCiphertext, &serverState, decrypted_message);
+            PUE_One_Decrypt(&ae_key, &ueCiphertext, decrypted_message);
             end = rdtsc();
             decrypt_cycles[re_encrypts] += (end - begin);
 
             if (memcmp(message, decrypted_message, totalPlaintextSize) != 0)
                 printf("Decryption error.\n");
-        
-            // printf("Dec %i done\n", re_encrypts);
-
         }
     }
 
@@ -143,8 +131,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < total_re_encrypts; i++)
         decrypt_cycles[i] /= CYCLES_DIVISOR;
 
-    printf("###### %s ######\nSize:%d Runs:%u NumCiphertext:%i ReEncrypts:%i\n <function>\ttot(%s)\t<# calls>\n gen_key:\t%lu\t%d\n encrypt:\t%lu\t%d\n regen_key:\t%lu\t%d\n re_encrypt:\t%lu\t%d\n first_decrypt:\t%lu\t%d\t\n last_decrypt:\t%lu\t%d\t\n\n",
-           PUE_GetName(),
+    printf("###### PUE_One ######\nSize:%d Runs:%u NumCiphertext:%i ReEncrypts:%i\n <function>\ttot(%s)\t<# calls>\n gen_key:\t%lu\t%d\n encrypt:\t%lu\t%d\n regen_key:\t%lu\t%d\n re_encrypt:\t%lu\t%d\n first_decrypt:\t%lu\t%d\t\n last_decrypt:\t%lu\t%d\t\n\n",
            size, runs, numCiphertext, total_re_encrypts, CYCLES_UNIT_NAME,
            gen_cycles, runs,
            encrypt_cycles, runs * numCiphertext,
@@ -161,8 +148,7 @@ int main(int argc, char **argv)
     free(message);
     free(decrypted_message);
     free(ueCiphertext.c.encryptedBits);
-    free(ueCiphertext.cHat.cHatMain.encryptedBits);
-    free(serverState.SeedsCtxt.encryptedBits);
-    PUE_SState_freeBuffers();
+    free(ueCiphertext.cHat.encryptedBits);
+    PUE_One_freeBuffers();
     printf("Done...\n");
 }
