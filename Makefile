@@ -1,6 +1,6 @@
 CC = /usr/bin/gcc
 NISTFLAGS = -O3 -fomit-frame-pointer -march=native -fPIC -no-pie
-UTILS_DIR = ../BEKS20/utils
+UTILS_DIR = ./utils
 
 DEPS = $(UTILS_DIR)/aes_ctr.c $(UTILS_DIR)/aes_ctr.h $(UTILS_DIR)/aes_gcm.c $(UTILS_DIR)/aes_gcm.h PUE_List.c PUE_List.h PUE_State.c PUE_State.h
 
